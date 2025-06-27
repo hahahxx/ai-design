@@ -1,0 +1,106 @@
+AI-Driven T-Shirt Design Prompt Generator
+
+Overview
+
+This project aims to automate the discovery of trending topics and generation of AI design prompts for a t-shirt business. The service will run daily to fetch recent popular topics (focused on the US market) from Google Trends and Reddit, especially within specific niches, and then use predefined prompt templates to output text prompts. These prompts can be fed into Midjourney or GPT to create fresh t-shirt designs. The system is designed for easy scalability – new niches or templates can be added with minimal changes.
+
+Tech Stack and Setup
+	•	Programming Language: We will use Python 3.11 (or the latest stable 3.x version). Python 3.11 offers significant performance improvements (around 1.25× faster than 3.10 on average ￼) and, as of 2025, is widely supported by most machine learning and data libraries ￼. Choosing a stable, widely-supported version ensures compatibility with AI/ML tools.
+	•	Environment Management: The project will be managed with Poetry. Poetry is a modern Python tool that simplifies dependency management and virtual environment isolation ￼. Using Poetry (via a pyproject.toml and poetry.lock) will make it easy to reproduce the environment across machines and avoid dependency conflicts.
+	•	Project Structure: We will organize the code into logical modules (e.g., data_sources/, models/, prompts/, etc.). A dedicated folder for prompt templates will be created (e.g., prompt_templates/), where each template file corresponds to a niche or product type. This separation makes it easy to update or add prompts for different niches.
+
+Data Storage and Models
+	•	Database: We’ll start with SQLite, a lightweight file-based SQL database, to store fetched trend data and generated prompts. SQLite is file-backed and requires no separate server, making it ideal for local or low-volume use.
+	•	ORM (Object-Relational Mapper): For simplicity and reliability, we will use Peewee – a lightweight, well-regarded Python ORM ￼. Peewee is open-source and known for being straightforward without too much overhead ￼, which fits our needs. Using an ORM allows defining Python classes for each table (e.g., a TrendTopic model, a Prompt model, etc.) and interacting with the database in a high-level way. Key models might include:
+	•	TrendTopic – fields: id, source (e.g., "Google Trends" or "Reddit"), niche, topic_text, timestamp, additional_data (if any metadata like popularity score).
+	•	Prompt – fields: id, niche, topic_text (the topic inserted), prompt_text (the final generated prompt), created_at.
+	•	(Optional) Niche – if we want to configure niches in the DB, we could have a table of niche definitions (name, associated subreddits, template path, etc.), but this can also be configured in code or a config file for simplicity.
+
+Using Peewee with SQLite ensures our code is concise and our data operations are safe and efficient. For example, Peewee will let us easily query for the latest topics or insert new prompts with simple method calls instead of writing raw SQL.
+
+Data Sources for Trending Topics
+
+Google Trends Integration
+
+We will use the Google Trends data to capture wider trending topics (especially those that might inspire t-shirt themes). The plan is to integrate with Google Trends via the unofficial PyTrends API. PyTrends provides a simple Python interface for Google Trends ￼, allowing us to download trend reports programmatically. It supports features like daily trending searches and real-time trends ￼. Key points for our implementation:
+	•	We will configure PyTrends to use US settings (e.g., TrendReq(hl='en-US', geo='US')) so that we get trends specific to the United States.
+	•	Daily Trending Searches: We can fetch the daily top trending search topics in the US. This gives a list of the day’s breakout search terms (which often reflect news, pop culture, viral memes, etc.). Each day’s trending terms can be examined to see if any relate to our niches (for example, a viral pet video or a new wellness craze).
+	•	Niche-Specific Queries: To focus on our niches, we can also use Google Trends “related queries.” For each niche, we choose a representative keyword and retrieve rising related searches. For example:
+	•	Yoga/Wellness: Use a query like “yoga” or “meditation” and get related rising queries (which might reveal trending yoga challenges, popular wellness topics, etc.).
+	•	Plants/Gardening: Query “houseplants” or “gardening” to see what plant-related terms are trending (e.g. a specific plant species going viral).
+	•	Pets: Query “pets” or specific animals (like “cats”) to find trending pet topics.
+We will utilize PyTrends methods like trendreq.trending_searches() for general trends or trendreq.related_queries() after building a payload with niche keywords.
+	•	The Google Trends data (trending terms) will be stored in our database (as TrendTopic entries with source=“Google Trends”). We’ll store the term, and possibly a score or rank if available, along with the date.
+
+By incorporating Google Trends, we ensure our prompt generator can latch onto widespread trends (e.g., a sudden spike in interest for “retro 90s fashion” or a meme like “Spacecore aesthetic”). Even if a trend isn’t niche-specific, we might still leverage it in a creative way for a design prompt.
+
+Reddit Integration
+
+Reddit is excellent for capturing community-driven trends and niche discussions. We will use the Reddit API (via PRAW – Python Reddit API Wrapper) to collect popular posts or topics from targeted subreddits. PRAW allows easy, read-only access to subreddit data and is designed to follow Reddit’s API rules (making it a stable choice for bots/scripts ￼). Key implementation details:
+	•	API Setup: We will use a read-only PRAW instance (no Reddit login needed beyond an API key) to fetch data. Using PRAW, we’ll create a script that connects with our Reddit app credentials and then iterates through chosen subreddits’ posts (e.g., the top posts of the last 24 hours).
+	•	Target Subreddits by Niche: For each t-shirt niche, we’ll monitor a set of relevant subreddits. This ensures we gather trending ideas specific to that niche’s audience. Below are the niches and some example subreddits to track:
+	•	AI Aesthetics / Glitch-Futurism: Subreddits like r/aiArt (AI-generated art community) and r/glitch_art (glitch databend art community) can highlight popular themes in AI-driven visuals or futuristic art. (These subs will surface trending AI art styles or popular glitch imagery, which could inspire t-shirt designs.)
+	•	Food & Drink Graphics: Track subs such as r/food (for popular food images/trends) and r/FoodPorn (a large community for attractive food photos). These can reveal trending foods or foodie memes (e.g., a viral recipe or a food item that’s suddenly popular) that might translate into graphic t-shirt ideas.
+	•	Yoga / Wellness: Monitor r/yoga and r/meditation, where enthusiasts share tips and trends (like a new yoga challenge, or mindfulness trend). Also, the broader r/Wellness subreddit (though smaller) might have general wellness trends ￼. These will keep us updated on what’s trending in healthy living (e.g., a new meditation app or yoga pose craze).
+	•	Pets: Use r/pets and the ever-popular r/aww (which features cute animals daily). Trending posts here might be about a particular pet breed or a pet meme going viral (for instance, a cat video trend or a heartwarming dog story). Such content can inspire adorable or humorous pet-themed designs.
+	•	Comfort Nostalgia (’80s–’90s Retro): Subscribe to r/nostalgia and r/OldSchoolCool. These communities share and upvote content from the 80s and 90s, surfacing nostalgic trends (e.g. popular retro toys, vintage fashion) that could be great on t-shirts. If something from the ’90s is having a resurgence (say, cassette tapes or a retro video game), we’ll catch it here.
+	•	Plants & Gardening (House-Plantcore): Follow r/houseplants, r/gardening, and r/plants. Houseplant enthusiasm is huge, and these subreddits will show trending plant types or gardening ideas (e.g., a particular exotic plant everyone wants, or plant care memes). This guides our plant-themed designs to align with what’s hot (like monsteras, succulents, or cottagecore garden imagery).
+	•	Data Collection Strategy: For each subreddit, we will likely fetch the top posts of the past day or week (to capture recent popular content). We might use PRAW’s sorting options (e.g., subreddit.top("day") or subreddit.hot(limit=...)) to get a handful of high-karma posts. From each post, we can extract the title (and possibly keywords or the gist of the content). The title often indicates the topic (for example, “My cat dressed as Yoda for Halloween!” might indicate a trending combo of pets + pop culture). We may also consider comment count or upvote ratio as indicators of engagement.
+	•	Storing Reddit Trends: Similar to Google data, we’ll store notable Reddit-derived topics in the TrendTopic table (source=“Reddit”). For example, if a post about succulents is trending on r/houseplants, we store “succulents” (niche=Plants) with the date. If multiple posts revolve around a similar idea, we could record that idea once but possibly increment a score or just note it appeared.
+
+Using Reddit ensures our prompt generator is tuned in to community interests and memes. It captures granular trends that Google might not highlight – for instance, a niche meme on r/nostalgia or a pet name that’s suddenly popular. By tracking specific subreddits, we effectively listen to the “pulse” of each niche.
+
+Prompt Template Management
+
+To generate Midjourney-ready prompts from raw trending topics, we will use a system of prompt templates. The idea is to have a template for each niche (or even multiple templates per niche or style), stored as text files in a prompt_templates/ directory. This approach allows easy editing and scaling without touching code. Key details:
+	•	Template Structure: Each template will be a text file that includes placeholders for dynamic parts like the trending topic. For example, a template for the Pets niche might be:
+"A cute digital illustration of a **{topic}**, in a cartoon style with vibrant colors, on a t-shirt."
+If the trending topic is “golden retriever puppy”, the generated prompt becomes “A cute digital illustration of a golden retriever puppy, in a cartoon style with vibrant colors, on a t-shirt.” This prompt can then be fed to Midjourney to create the image. Another example for Glitch-Futurism niche:
+"An AI-generated glitch art poster depicting **{topic}** in a futuristic cyberpunk style."
+If topic = “city skyline”, it yields “An AI-generated glitch art poster depicting a city skyline in a futuristic cyberpunk style.”
+	•	Organization: We can name template files by niche (e.g., pets.txt, glitch_futurism.txt, etc.) or by niche+product if needed. The service will load the appropriate template based on the niche when generating prompts. Keeping them in files (rather than hard-coded strings) makes it easy to update wording or add new templates. Non-technical users (or a designer on the team) could tweak these templates without diving into code.
+	•	Multiple Templates (Extensibility): We might allow multiple templates per niche for variety. For instance, the Food & Drink niche might have one template for realistic photography style prompts and another for whimsical cartoon style prompts. The system could either choose one at random each time or rotate through them. The template folder could have subfolders or a naming scheme (like food_1.txt, food_2.txt) to manage this.
+	•	Template Variables: Define a clear format for placeholders (like {topic} for the trending term). When generating the prompt, the code will simply do a substitution (ensuring proper escaping of any special characters from the topic text). In Python, this could be as simple as using .format() or f-strings after reading the template content.
+	•	Version Control: Because prompts can significantly affect AI outputs, we will likely tweak templates over time. It’s wise to keep the templates under version control (Git), or even store a reference of which template was used for a given prompt in the database for traceability.
+
+By having a dedicated prompt template system, the service can easily support new product types or styles. For example, if later we start designing mugs or posters, we can add templates for those without overhauling the code logic. This design choice directly supports the requirement that the system be easily scalable to new niches or product lines.
+
+Daily Execution Workflow
+
+The entire service will be orchestrated to run once a day (or on demand when manually triggered) to produce that day’s AI design prompts. Here’s the step-by-step workflow:
+	1.	Initialization: The Python script (or scheduler) starts by initializing the environment – loading config, connecting to the SQLite database, and preparing API clients (PyTrends and PRAW). We ensure the prompt_templates/ directory is accessible and perhaps load all templates into memory.
+	2.	Fetch Trending Topics: For each data source:
+	•	Google Trends: Retrieve today’s trending search terms for the US. Save those into the database (if not already present) and mark them with today’s date. Additionally, for each niche keyword (if using related queries), retrieve rising related searches. Filter or prioritize queries that seem relevant to our known niches. For instance, if a Google trend is “90s fashion comeback”, we know this aligns with the Nostalgia niche, so it’s a good candidate.
+	•	Reddit: For each target subreddit, fetch the top posts (within the last day). Extract a representative topic from each post. (This might simply be the title, or a keyword within the title – we may apply some parsing or even basic NLP to clean it, e.g., remove emojis or question phrasing). Save these topics to the database if new. We will tag each topic with its niche. If a subreddit’s top post title is very long or not a simple noun phrase, we might manually define the topic. Example: A top post titled “Anyone else obsessed with monsteras right now?” – we could record the topic as “monsteras (houseplant)” for the Plants niche.
+	3.	Identify Topical Keywords: After data collection, we will have a set of trending topics (some from Google, some from Reddit), each associated with a niche (either explicitly known from the subreddit or inferred from context). If any Google trend doesn’t clearly fit our existing niches, we may skip it or assign it to a generic category for review. The system could be made smart by matching keywords (e.g., if a Google trend contains “pizza”, that’s Food niche; if it contains “AI” or “cyberpunk”, that’s Glitch-Futurism niche, etc.). For initial implementation, we might manually map a few obvious keywords to niches.
+	4.	Generate Prompts: Now the core step – for each niche, take one or more trending topics and plug them into the prompt templates:
+	•	Open the template file for that niche.
+	•	Substitute the {topic} placeholder with the actual trending topic text. (If needed, do any grammatical fixes like a/an insertion, pluralization, etc., though in many cases the topics will fit naturally).
+	•	If multiple topics per niche are trending, we could generate multiple prompts (one per topic), or choose the top topic. For example, if three food-related items are trending, we might create three separate food design prompts for diversity.
+	•	Example result: niche = Pets, topic = “corgi puppies”, template = “A cute cartoon illustration of a {topic} wearing sunglasses.” -> Generated prompt: “A cute cartoon illustration of a corgi puppy wearing sunglasses.”
+	•	Each generated prompt text is then saved to the database (in the Prompt table) with a timestamp, and possibly also written out to a file or printed to console for the user to copy.
+	5.	Output/Delivery: For now, we are just storing prompts locally. The daily run could simply log the new prompts or save them in a text file for the day. Since the user will manually pick them up to use in Midjourney, we might create an output file like prompts_YYYY-MM-DD.txt listing all prompts generated that day (grouped by niche). This makes it convenient to review and copy-paste into the AI tool.
+	6.	Repeat Schedule: Initially, the user will trigger this service manually each day. This could be via a simple CLI command (poetry run python run_daily.py for example). Down the line, we can set up a cron job or Windows Task Scheduler to run it every morning automatically. The code could also be containerized if deployment to a server is needed for automation.
+
+Throughout the run, the service will include logging (e.g., info logs for “Fetched 5 trends from Google” or “Generated prompt for Pets: …”). This helps in debugging and verifying that each step works as expected. In case of errors (like a network issue fetching trends), the system will catch exceptions and log them, so a failed fetch doesn’t crash the entire run. We may also implement simple retry logic for network calls (especially Google Trends, which can occasionally fail if rate-limited – PyTrends allows setting retries).
+
+Extensibility and Scalability
+
+The design outlined ensures that adding new niches or data sources is straightforward:
+	•	To add a new niche category (say, “Sports”), one would create a new prompt template file (e.g., sports.txt with appropriate wording) and update the configuration to include some relevant subreddits (e.g., r/sports, r/NBA if focusing on basketball) and/or Google Trends keywords. The code can be structured to load a list of niches from a config (YAML/JSON or even the database), so it automatically picks up new entries.
+	•	The use of an ORM and SQLite means we could easily swap to a more robust database later (like PostgreSQL) without major code changes, should the data volume or multi-user needs grow. Similarly, PRAW and PyTrends could be replaced or augmented with other sources (e.g., Twitter trending topics API, if needed) in the future, by writing new data fetch modules conforming to the same interface (fetch and return a list of topics).
+	•	The prompt generation logic is decoupled from the data collection. This means if we wanted to use a more sophisticated approach (like using GPT-4 to generate a prompt from the topic, instead of a static template), we could plug that in as a replacement in the prompt generation step. The template files approach is our starting point for consistency and control, but the system could evolve to AI-generated prompts once we have enough data.
+	•	Performance considerations: Since the service runs infrequently (daily) and the amount of data is small (a few trends per day, a few Reddit posts per subreddit), Python should comfortably handle it. We can use batching for database writes (e.g., insert many topics in one transaction) to speed it up. If some subreddits are very large and return too many posts, we will limit the fetch (e.g., top 5 posts per subreddit per day). This keeps runtime quick.
+	•	Testing: We will test the components individually. For instance, test that PyTrends fetch returns data as expected, test that PRAW can retrieve from each subreddit (with proper credentials), and test that a sample template generates a correct prompt. This ensures reliability when the automated run is executed.
+
+Conclusion
+
+In summary, the project will leverage Python 3.11 with Poetry for a manageable environment, use SQLite + Peewee ORM for storing trend data and prompts, and integrate Google Trends (via PyTrends) and Reddit (via PRAW) to gather the latest popular topics each day. It targets specific t-shirt design niches (AI art, food, wellness, pets, nostalgia, plants) and will generate tailored Midjourney-ready prompts using a flexible template system. The architecture emphasizes modularity (separating data collection, storage, and prompt generation) and scalability (new niches or sources can be added easily), aligning with the requirements for an evolving AI-driven design service. With this in place, the shop owner can simply run the service each day and receive fresh, trend-inspired prompts ready to be turned into eye-catching t-shirt designs.
+
+Sources:
+	•	Python 3.11 performance and library support ￼ ￼
+	•	Poetry for dependency and environment management ￼
+	•	Peewee ORM – lightweight and efficient for SQLite ￼ ￼
+	•	PyTrends (Unofficial Google Trends API) overview and capabilities ￼ ￼
+	•	PRAW (Python Reddit API Wrapper) usage and compliance with Reddit rules ￼
+	•	Using Reddit communities for niche trend tracking (wellness niche example) ￼
