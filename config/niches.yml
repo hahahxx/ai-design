@@ -1,0 +1,56 @@
+niches:
+  ai_art:
+    google_keywords: ["AI art", "generative art", "digital art"]
+    subreddits: ["aiArt", "glitch_art", "generative"]
+    templates: ["ai_art_futuristic.txt", "ai_art_glitch.txt"]
+    max_prompts_per_day: 3
+
+  food_drink:
+    google_keywords: ["food trends", "recipes", "cooking"]
+    subreddits: ["food", "FoodPorn", "recipes"]
+    templates: ["food_realistic.txt", "food_cartoon.txt"]
+    max_prompts_per_day: 3
+
+  wellness:
+    google_keywords: ["yoga", "meditation", "wellness", "mindfulness"]
+    subreddits: ["yoga", "meditation", "Wellness"]
+    templates: ["wellness_zen.txt", "wellness_motivational.txt"]
+    max_prompts_per_day: 3
+
+  pets:
+    google_keywords: ["pets", "cats", "dogs", "cute animals"]
+    subreddits: ["pets", "aww", "cats", "dogs"]
+    templates: ["pets_cute.txt", "pets_funny.txt"]
+    max_prompts_per_day: 3
+
+  nostalgia:
+    google_keywords: ["80s nostalgia", "90s nostalgia", "retro", "vintage"]
+    subreddits: ["nostalgia", "OldSchoolCool", "80s", "90s"]
+    templates: ["nostalgia_retro.txt", "nostalgia_vintage.txt"]
+    max_prompts_per_day: 3
+
+  plants:
+    google_keywords: ["houseplants", "gardening", "plants", "succulents"]
+    subreddits: ["houseplants", "gardening", "plants", "succulents"]
+    templates: ["plants_botanical.txt", "plants_minimalist.txt"]
+    max_prompts_per_day: 3
+
+# Global settings
+settings:
+  output_directory: "output"
+  log_directory: "logs"
+  database_path: "data/trends.db"
+  backup_directory: "backups"
+  
+  # Fetcher settings
+  google_trends:
+    geo: "US"
+    language: "en-US"
+    retry_attempts: 3
+    retry_delay: 1.0
+    
+  reddit:
+    retry_attempts: 3
+    retry_delay: 1.0
+    posts_per_subreddit: 10
+    time_filter: "day"  # day, week, month, year, all 
